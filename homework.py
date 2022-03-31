@@ -32,7 +32,6 @@ HOMEWORK_STATUSES: dict = {
 
 def send_message(bot, message: str) -> None:
     """Отправка сообщения в Telegram"""
-
     try:
         bot.send_message(
             chat_id=TELEGRAM_CHAT_ID,
@@ -45,7 +44,6 @@ def send_message(bot, message: str) -> None:
 
 def get_api_answer(current_timestamp: int) -> dict:
     """Получение ответа от API"""
-
     timestamp: int = current_timestamp or int(time.time())
     params: dict = {'from_date': timestamp}
     headers: dict = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
@@ -71,7 +69,6 @@ def get_api_answer(current_timestamp: int) -> dict:
 
 def check_response(response: dict) -> list:
     """Проверка ответа от API"""
-
     if not isinstance(response, dict):
         raise TypeError('Нужен словарь!')
     try:
@@ -90,7 +87,6 @@ def check_response(response: dict) -> list:
 
 def parse_status(homework: dict) -> str:
     """Получение статуса работы"""
-
     try:
         homework_name = homework['homework_name']
         homework_status = homework['status']
@@ -107,7 +103,6 @@ def parse_status(homework: dict) -> str:
 
 def check_tokens() -> bool:
     """Проверка необходимых токенов"""
-
     for i in [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]:
         if i is None:
             return False
@@ -117,7 +112,6 @@ def check_tokens() -> bool:
 
 def main():
     """Основная логика работы бота."""
-
     logging.basicConfig(
         level=logging.DEBUG,
         handlers=[logging.StreamHandler(sys.stdout)],
