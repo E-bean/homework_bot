@@ -7,9 +7,10 @@ from urllib.error import HTTPError
 
 import requests
 from dotenv import load_dotenv
-from telegram import Bot
+from telegram import Bot, TelegramError
 
 from exceptions import EmptyList, HTTPStatusCodeIncorrect, NeedToken
+from settings import ENDPOINT, HOMEWORK_STATUSES, RETRY_TIME
 
 load_dotenv()
 
@@ -17,17 +18,6 @@ load_dotenv()
 PRACTICUM_TOKEN: str = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN: str = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID: str = os.getenv('TELEGRAM_CHAT_ID')
-
-RETRY_TIME: int = 600
-ENDPOINT: str = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
-HEADERS: dict = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
-
-HOMEWORK_STATUSES: dict = {
-    'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
-    'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
-}
 
 
 def send_message(bot, message: str) -> None:
@@ -38,7 +28,7 @@ def send_message(bot, message: str) -> None:
             text=message
         )
         logging.info(f'Отправлено сообщение: {message}')
-    except Exception as error:
+    except TelegramError as error:
         logging.error(f'Cбой при отправке сообщения, ошибка {error}')
 
 
@@ -64,6 +54,11 @@ def get_api_answer(current_timestamp: int) -> dict:
             f'Статус ответа API не 200, статус {response.status_code}'
         )
         raise HTTPStatusCodeIncorrect
+    try:
+        response.json()
+    except Exception as error:
+        logging.error(f'Ошибка в преобразовании из JSON в Python, {error}')
+        raise
     return response.json()
 
 
@@ -71,11 +66,8 @@ def check_response(response: dict) -> list:
     """Проверка ответа от API."""
     if not isinstance(response, dict):
         raise TypeError('Нужен словарь!')
-    try:
-        homeworks: list = response.get('homeworks')
-    except Exception as error:
-        logging.error(f'Ошибка в получении списка домашних работ, {error}')
-    else:
+    homeworks: list = response.get('homeworks')
+    if homeworks is not None:
         if not isinstance(homeworks, list):
             logging.error()
             raise TypeError('Нужен список!')
@@ -83,6 +75,9 @@ def check_response(response: dict) -> list:
             logging.error('Empty homeworks list')
             raise EmptyList
         return homeworks
+    else:
+        logging.error('Response не содержит ключ homeworks')
+        raise KeyError
 
 
 def parse_status(homework: dict) -> str:
@@ -103,11 +98,7 @@ def parse_status(homework: dict) -> str:
 
 def check_tokens() -> bool:
     """Проверка необходимых токенов."""
-    for i in [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]:
-        if i is None:
-            return False
-        else:
-            return True
+    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def main():
