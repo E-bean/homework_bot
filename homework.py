@@ -72,7 +72,7 @@ def check_response(response: dict) -> list:
             logging.error()
             raise TypeError('Нужен список!')
         if len(homeworks) == 0:
-            logging.error('Empty homeworks list')
+            logging.debug('Empty homeworks list')
             raise EmptyList
         return homeworks
     else:
